@@ -46,6 +46,112 @@ enum GGMLType {
   GGML_TYPE_COUNT,
 };
 
+enum GGMLFileType {
+  LLAMA_FTYPE_ALL_F32 = 0,
+  LLAMA_FTYPE_MOSTLY_F16 = 1,   // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q4_0 = 2,  // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q4_1 = 3,  // except 1d tensors
+  // LLAMA_FTYPE_MOSTLY_Q4_1_SOME_F16 = 4,  // tok_embeddings.weight and output.weight are F16
+  // LLAMA_FTYPE_MOSTLY_Q4_2       = 5,  // support has been removed
+  // LLAMA_FTYPE_MOSTLY_Q4_3       = 6,  // support has been removed
+  LLAMA_FTYPE_MOSTLY_Q8_0 = 7,       // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q5_0 = 8,       // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q5_1 = 9,       // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q2_K = 10,      // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q3_K_S = 11,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q3_K_M = 12,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q3_K_L = 13,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q4_K_S = 14,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q4_K_M = 15,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q5_K_S = 16,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q5_K_M = 17,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q6_K = 18,      // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ2_XXS = 19,   // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ2_XS = 20,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q2_K_S = 21,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ3_XS = 22,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ3_XXS = 23,   // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ1_S = 24,     // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ4_NL = 25,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ3_S = 26,     // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ3_M = 27,     // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ2_S = 28,     // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ2_M = 29,     // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ4_XS = 30,    // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_IQ1_M = 31,     // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_BF16 = 32,      // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q4_0_4_4 = 33,  // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q4_0_4_8 = 34,  // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_Q4_0_8_8 = 35,  // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_TQ1_0 = 36,     // except 1d tensors
+  LLAMA_FTYPE_MOSTLY_TQ2_0 = 37,     // except 1d tensors
+
+  LLAMA_FTYPE_GUESSED = 1024,  // not specified in the model file
+};
+
+inline float GetQuantBit(GGMLFileType ft) {
+  switch (ft)
+  {
+   case LLAMA_FTYPE_ALL_F32:
+   return 32.0;
+  case LLAMA_FTYPE_MOSTLY_F16:   // except 1d tensors
+  return 16.0;
+  case LLAMA_FTYPE_MOSTLY_Q4_0:  // except 1d tensors
+  return 4.5;
+  case LLAMA_FTYPE_MOSTLY_Q4_1:  // except 1d tensors
+  return 5.0;
+  case LLAMA_FTYPE_MOSTLY_Q8_0:       // except 1d tensors
+  return 8.5;
+  case LLAMA_FTYPE_MOSTLY_Q5_0:       // except 1d tensors
+  return 5.5;
+  case LLAMA_FTYPE_MOSTLY_Q5_1:       // except 1d tensors
+  return 6.0;
+  case LLAMA_FTYPE_MOSTLY_Q2_K:      // except 1d tensors
+  return 3.35;
+  case LLAMA_FTYPE_MOSTLY_Q3_K_S:    // except 1d tensors
+  return 3.5;
+  case LLAMA_FTYPE_MOSTLY_Q3_K_M:   // except 1d tensors
+  return 3.91;
+  case LLAMA_FTYPE_MOSTLY_Q3_K_L:    // except 1d tensors
+  return 4.27;
+  case LLAMA_FTYPE_MOSTLY_Q4_K_S:    // except 1d tensors
+  return 4.58;
+  case LLAMA_FTYPE_MOSTLY_Q4_K_M:   // except 1d tensors
+  return 4.84;
+  case LLAMA_FTYPE_MOSTLY_Q5_K_S:    // except 1d tensors
+  return 5.52;
+  case LLAMA_FTYPE_MOSTLY_Q5_K_M:    // except 1d tensors
+  return 5.68;
+  case LLAMA_FTYPE_MOSTLY_Q6_K:      // except 1d tensors
+  return 6.56;
+  case LLAMA_FTYPE_MOSTLY_IQ2_XXS:   // except 1d tensors
+  return 2.06;
+  case LLAMA_FTYPE_MOSTLY_IQ2_XS:    // except 1d tensors
+  return 2.31;
+  case LLAMA_FTYPE_MOSTLY_Q2_K_S:    // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ3_XS:    // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ3_XXS:   // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ1_S:    // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ4_NL:    // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ3_S:     // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ3_M:     // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ2_S:     // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ2_M:     // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ4_XS:    // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_IQ1_M:     // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_BF16:      // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_Q4_0_4_4:  // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_Q4_0_4_8:  // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_Q4_0_8_8:  // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_TQ1_0:     // except 1d tensors
+  case LLAMA_FTYPE_MOSTLY_TQ2_0:     // except 1d ten
+
+
+  default:
+    return 8.0;
+  }
+}
+
 inline std::string to_string(GGMLType t) {
   switch (t) {
     case GGML_TYPE_F32:

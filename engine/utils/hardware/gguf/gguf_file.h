@@ -1202,8 +1202,8 @@ inline GGUFFile ParseGgufFile(const std::string& path) {
     kvs.resize(metadata_kv_count);
     for (size_t i = 0; i < metadata_kv_count; i++) {
       kvs[i] = h.ReadMetadataKV();
-      // GGUF_LOG("i: " << i << " " << kvs[i].value_type << " " << kvs[i].key
-      //                << ": " << to_string(kvs[i]));
+      GGUF_LOG("i: " << i << " " << kvs[i].value_type << " " << kvs[i].key
+                     << ": " << to_string(kvs[i]));
     }
     for (auto const& kv : kvs) {
       if (kv.key == "split.no") {

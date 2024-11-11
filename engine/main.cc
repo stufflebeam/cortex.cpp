@@ -19,6 +19,7 @@
 #include "utils/file_manager_utils.h"
 #include "utils/logging_utils.h"
 #include "utils/system_info_utils.h"
+#include "utils/hardware/gguf/gguf_file_estimate.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <libgen.h>  // for dirname()
@@ -189,6 +190,8 @@ void RunServer(std::optional<int> port, bool ignore_cout) {
 }
 
 int main(int argc, char* argv[]) {
+  auto res = hardware::EstimateLLaMACppRun("/home/jan/cortexcpp/models/cortex.so/tinyllama/1b-gguf/model.gguf", 0, 0);
+  return 0;
   // Stop the program if the system is not supported
   auto system_info = system_info_utils::GetSystemInfo();
   if (system_info->arch == system_info_utils::kUnsupported ||
