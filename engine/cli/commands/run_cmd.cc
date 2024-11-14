@@ -45,7 +45,7 @@ std::optional<std::string> SelectLocalModel(std::string host, int port,
   } else {
     auto related_models_ids = modellist_handler.FindRelatedModel(model_handle);
     if (related_models_ids.has_error() || related_models_ids.value().empty()) {
-      auto result = ModelPullCmd(model_service).Exec(host, port, model_handle);
+      auto result = ModelPullCmd().Exec(host, port, model_handle);
       if (!result) {
         CLI_LOG("Model " << model_handle << " not found!");
         return std::nullopt;
@@ -127,8 +127,7 @@ void RunCmd::Exec(bool run_detach,
       {
         if ((mc.engine.find(kLlamaRepo) == std::string::npos &&
              mc.engine.find(kLlamaEngine) == std::string::npos) ||
-            !commands::ModelStatusCmd(model_service_)
-                 .IsLoaded(host_, port_, *model_id)) {
+            !commands::ModelStatusCmd().IsLoaded(host_, port_, *model_id)) {
 
           auto res = commands::ModelStartCmd(model_service_)
                          .Exec(host_, port_, *model_id, options,
