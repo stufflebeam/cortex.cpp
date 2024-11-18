@@ -78,7 +78,8 @@ cpp::result<DownloadTask, std::string> GetDownloadTask(
   url_parser::Url url = {
       .protocol = "https",
       .host = kHuggingFaceHost,
-      .pathParams = {"api", "models", "cortexso", modelId, "tree", branch}};
+      .pathParams = {"api", "models", "cortexso", modelId, "tree", branch},
+  };
 
   auto result = curl_utils::SimpleGetJson(url.ToFullPath());
   if (result.has_error()) {
