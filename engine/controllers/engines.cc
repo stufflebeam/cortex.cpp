@@ -47,9 +47,18 @@ void Engines::ListEngine(
 void Engines::UninstallEngine(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback,
-    const std::string& engine, const std::optional<std::string> version,
-    const std::optional<std::string> variant) {
+    const std::string& engine) {
+  auto variant = (*(req->getJsonObject())).get("variant", "").asString();
+  if (variant.empty()) {
+    Json::Value ret;
+    ret["message"] = "Variant is required";
+    auto resp = cortex_utils::CreateCortexHttpJsonResponse(ret);
+    resp->setStatusCode(k400BadRequest);
+    callback(resp);
+    return;
+  }
 
+  auto version = (*(req->getJsonObject())).get("version", "latest").asString();
   auto result =
       engine_service_->UninstallEngineVariant(engine, version, variant);
 
@@ -134,12 +143,19 @@ void Engines::GetEngineVariants(
 void Engines::InstallEngine(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback,
-    const std::string& engine, const std::optional<std::string> version,
-    const std::optional<std::string> variant_name) {
-  auto normalized_version = version.value_or("latest");
+    const std::string& engine) {
+  auto variant = (*(req->getJsonObject())).get("variant", "").asString();
+  if (variant.empty()) {
+    Json::Value ret;
+    ret["message"] = "Variant is required";
+    auto resp = cortex_utils::CreateCortexHttpJsonResponse(ret);
+    resp->setStatusCode(k400BadRequest);
+    callback(resp);
+    return;
+  }
 
-  auto result = engine_service_->InstallEngineAsyncV2(
-      engine, normalized_version, variant_name);
+  auto version = (*(req->getJsonObject())).get("version", "latest").asString();
+  auto result = engine_service_->InstallEngineAsyncV2(engine, version, variant);
   if (result.has_error()) {
     Json::Value res;
     res["message"] = result.error();
@@ -218,8 +234,26 @@ void Engines::GetLatestEngineVersion(
 void Engines::SetDefaultEngineVariant(
     const HttpRequestPtr& req,
     std::function<void(const HttpResponsePtr&)>&& callback,
-    const std::string& engine, const std::string& version,
-    const std::string& variant) {
+    const std::string& engine) {
+  auto variant = (*(req->getJsonObject())).get("variant", "").asString();
+  if (variant.empty()) {
+    Json::Value ret;
+    ret["message"] = "Variant is required";
+    auto resp = cortex_utils::CreateCortexHttpJsonResponse(ret);
+    resp->setStatusCode(k400BadRequest);
+    callback(resp);
+    return;
+  }
+  auto version = (*(req->getJsonObject())).get("version", "").asString();
+  if (version.empty()) {
+    Json::Value ret;
+    ret["message"] = "Version is required";
+    auto resp = cortex_utils::CreateCortexHttpJsonResponse(ret);
+    resp->setStatusCode(k400BadRequest);
+    callback(resp);
+    return;
+  }
+
   auto result =
       engine_service_->SetDefaultEngineVariant(engine, version, variant);
   if (result.has_error()) {
