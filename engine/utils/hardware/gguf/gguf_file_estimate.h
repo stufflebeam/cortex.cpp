@@ -664,30 +664,40 @@ inline LLaMACppRunEstimate EstimateLLaMACppRun(GGUFFile& gf,
 // Still have some bugs, bypass for now
 inline std::pair<uint64_t, uint64_t> EstimateLLaMACppRun(
     const std::string& file_path, int ngl, int ctx_len) {
-      // token_embeddings_size = n_vocab * embedding_length * 2 * quant_bit/16 bytes
-      //RAM = token_embeddings_size + ((total_ngl-ngl) >=1 ? Output_layer_size +  (total_ngl - ngl - 1 ) / (total_ngl-1) * (total_file_size - token_embeddings_size - Output_layer_size) : 0  )  (bytes)
+  // token_embeddings_size = n_vocab * embedding_length * 2 * quant_bit/16 bytes
+  //RAM = token_embeddings_size + ((total_ngl-ngl) >=1 ? Output_layer_size +  (total_ngl - ngl - 1 ) / (total_ngl-1) * (total_file_size - token_embeddings_size - Output_layer_size) : 0  )  (bytes)
 
-// VRAM = total_file_size - RAM (bytes)
+  // VRAM = total_file_size - RAM (bytes)
   auto gf = ParseGgufFile(file_path);
   uint32_t embedding_length = 0;
   uint64_t n_vocab = 0;
   GGMLFileType file_type;
   auto file_size = std::filesystem::file_size(file_path);
-  for( auto const& kv: gf.header.metadata_kv) {
-    if(kv.key == "llama.embedding_length") {
+  for (auto const& kv : gf.header.metadata_kv) {
+    if (kv.key == "llama.embedding_length") {
       embedding_length = std::any_cast<uint32_t>(kv.value);
-    } else if(kv.key == "tokenizer.ggml.tokens") {
+    } else if (kv.key == "tokenizer.ggml.tokens") {
       n_vocab = std::any_cast<GGUFMetadataKVArrayValue>(kv.value).arr.size();
-    } else if(kv.key == "general.file_type") {
+    } else if (kv.key == "general.file_type") {
       file_type = GGMLFileType(std::any_cast<uint32_t>(kv.value));
     }
   }
+
+  for (auto const& ti : gf.tensor_infos) {
+    if (ti->name == "output.weight") {
+      std::cout << ti->type << std::endl;
+    } else if (ti->name == "token_embd.weight") {
+      std::cout << ti->type << std::endl;
+    }
+  }
+  // output.weight
+  // token_embd.weight
   std::cout << "embedding_length: " << embedding_length << std::endl;
   std::cout << "n_vocab: " << n_vocab << std::endl;
   std::cout << "file_type: " << file_type << std::endl;
   std::cout << "file_size: " << file_size << std::endl;
   auto bpw = GetQuantBit(file_type);
-  uint64_t token_embeddings_size = n_vocab * embedding_length * 2 * bpw/16; 
+  uint64_t token_embeddings_size = n_vocab * embedding_length * 2 * bpw / 16;
   uint64_t ram_usage = token_embeddings_size;
   uint64_t vram_usage = file_size - ram_usage;
   std::cout << "ram_usage: " << ram_usage << std::endl;

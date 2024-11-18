@@ -190,7 +190,7 @@ void RunServer(std::optional<int> port, bool ignore_cout) {
 }
 
 int main(int argc, char* argv[]) {
-  auto res = hardware::EstimateLLaMACppRun("/home/jan/cortexcpp/models/cortex.so/tinyllama/1b-gguf/model.gguf", 0, 0);
+  auto res = hardware::EstimateLLaMACppRun("/home/jan/cortexcpp-nightly/models/cortex.so/tinyllama/1b-gguf/model.gguf", 0, 0);
   return 0;
   // Stop the program if the system is not supported
   auto system_info = system_info_utils::GetSystemInfo();
