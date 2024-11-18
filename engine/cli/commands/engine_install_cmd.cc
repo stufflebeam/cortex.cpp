@@ -115,19 +115,16 @@ bool EngineInstallCmd::Exec(const std::string& engine,
     std::cout << "Selected " << selected_variant.value() << " - "
               << selected_version.value() << std::endl;
 
-    auto install_url =
-        url_parser::Url{.protocol = "http",
-                        .host = host_ + ":" + std::to_string(port_),
-                        .pathParams =
-                            {
-                                "v1",
-                                "engines",
-                                engine,
-                            },
-                        .queries = {
-                            {"version", selected_version.value()},
-                            {"variant", selected_variant.value()},
-                        }};
+    auto install_url = url_parser::Url{
+        .protocol = "http",
+        .host = host_ + ":" + std::to_string(port_),
+        .pathParams =
+            {
+                "v1",
+                "engines",
+                engine,
+            },
+    };
 
     auto response = curl_utils::SimplePostJson(install_url.ToFullPath());
     if (response.has_error()) {
