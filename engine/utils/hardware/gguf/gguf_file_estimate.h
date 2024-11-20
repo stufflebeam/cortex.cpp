@@ -662,15 +662,37 @@ inline LLaMACppRunEstimate EstimateLLaMACppRun(GGUFFile& gf,
 }
 
 // Still have some bugs, bypass for now
+
+struct RunConfig {
+  int total_ngl;
+  int ngl;
+  int ctx_len;
+  int n_batch;
+  int n_ubatch;
+  std::string kv_cache_type;
+};
+
+inline float GetQuantBit(const std::string& kv_cache_t) {
+  if (kv_cache_t == "f16") {
+    return 16.0;
+  } else if (kv_cache_t == "q8_0") {
+    return 8.0;
+  } else if (kv_cache_t == "q4_0") {
+    return 4.5;
+  }
+  return 16.0;
+}
+
 inline std::pair<uint64_t, uint64_t> EstimateLLaMACppRun(
-    const std::string& file_path, int ngl, int ctx_len) {
+    const std::string& file_path, const RunConfig& rc) {
   // token_embeddings_size = n_vocab * embedding_length * 2 * quant_bit/16 bytes
   //RAM = token_embeddings_size + ((total_ngl-ngl) >=1 ? Output_layer_size +  (total_ngl - ngl - 1 ) / (total_ngl-1) * (total_file_size - token_embeddings_size - Output_layer_size) : 0  )  (bytes)
 
   // VRAM = total_file_size - RAM (bytes)
   auto gf = ParseGgufFile(file_path);
-  uint32_t embedding_length = 0;
-  uint64_t n_vocab = 0;
+  int32_t embedding_length = 0;
+  int64_t n_vocab = 0;
+  int32_t num_block = 0;
   GGMLFileType file_type;
   auto file_size = std::filesystem::file_size(file_path);
   for (auto const& kv : gf.header.metadata_kv) {
@@ -680,13 +702,21 @@ inline std::pair<uint64_t, uint64_t> EstimateLLaMACppRun(
       n_vocab = std::any_cast<GGUFMetadataKVArrayValue>(kv.value).arr.size();
     } else if (kv.key == "general.file_type") {
       file_type = GGMLFileType(std::any_cast<uint32_t>(kv.value));
+    } else if (kv.key == "llama.block_count") {
+      num_block = std::any_cast<uint32_t>(kv.value);
     }
   }
 
+  // token_embeddings_size = n_vocab * embedding_length * 2 * quant_bit_in/16 bytes
+  int32_t quant_bit_in = 0;
+  int32_t quant_bit_out = 0;
+
   for (auto const& ti : gf.tensor_infos) {
     if (ti->name == "output.weight") {
+      quant_bit_out = GetQuantBit(ti->type);
       std::cout << ti->type << std::endl;
     } else if (ti->name == "token_embd.weight") {
+      quant_bit_in = GetQuantBit(ti->type);
       std::cout << ti->type << std::endl;
     }
   }
@@ -696,16 +726,53 @@ inline std::pair<uint64_t, uint64_t> EstimateLLaMACppRun(
   std::cout << "n_vocab: " << n_vocab << std::endl;
   std::cout << "file_type: " << file_type << std::endl;
   std::cout << "file_size: " << file_size << std::endl;
-  auto bpw = GetQuantBit(file_type);
-  uint64_t token_embeddings_size = n_vocab * embedding_length * 2 * bpw / 16;
-  uint64_t ram_usage = token_embeddings_size;
-  uint64_t vram_usage = file_size - ram_usage;
+  // auto bpw = GetQuantBit(file_type);
+  // Model weight
+  int64_t token_embeddings_size =
+      n_vocab * embedding_length * 2 * quant_bit_in / 16;
+  int64_t output_layer_size =
+      n_vocab * embedding_length * 2 * quant_bit_out / 16;
+  // RAM = token_embeddings_size + ((total_ngl-ngl) >=1 ? output_layer_size +  (total_ngl - ngl - 1 ) / (total_ngl-1) * (total_file_size - token_embeddings_size - output_layer_size) : 0  )  (bytes)
+  int64_t offload = 0;
+  if (rc.total_ngl >= rc.ngl + 1) {
+    offload = output_layer_size +
+              (double)(rc.total_ngl - rc.ngl - 1) / (rc.total_ngl - 1) *
+                  (file_size - token_embeddings_size - output_layer_size);
+  }
+
+  int64_t ram_usage = token_embeddings_size + offload;
+  int64_t vram_usage = file_size - ram_usage;
+  std::cout << "token_embeddings_size: " << token_embeddings_size << std::endl;
+  std::cout << "output_layer_size: " << output_layer_size << std::endl;
   std::cout << "ram_usage: " << ram_usage << std::endl;
   std::cout << "vram_usage: " << vram_usage << std::endl;
 
-  // kv_cache_size = ctx_len/8192 * hidden_dim/4096 * quant_bit/16 * 1 (GB)
+  // KV cache
+  // kv_cache_size = ctx_len/8192 * hidden_dim/4096 * quant_bit/16 * num_block/33 * 1 (GB)
   auto hidden_dim = embedding_length;
+  int kv_quant_bit =
+      GetQuantBit(rc.kv_cache_type);  // f16, 8 bits for q8_0, 4.5 bits for q4_0
+  int64_t kv_cache_size = (double)(1024 * 1024 * 1024) * rc.ctx_len / 8192 *
+                          hidden_dim / 4096 * kv_quant_bit / 16 * num_block /
+                          33;  //(bytes)
 
+  std::cout << "kv_cache_size: " << kv_cache_size << std::endl;
+
+  // VRAM = (min(n_batch, n_ubatch))/ 512 * 266 (MiB)
+  int64_t preprocessing_buffer_size =
+      (double)std::min(rc.n_batch, rc.n_ubatch) / 512 * 266 * 1024 *
+      1024;  //(bytes)
+  if (rc.total_ngl != rc.ngl) {
+    preprocessing_buffer_size += output_layer_size;
+  }
+  std::cout << "preprocessing_buffer_size: " << preprocessing_buffer_size
+            << std::endl;
   return std::pair(0u, 0u);
 }
+// CPU_Mapped model buffer size =    35.16 MiB
+// CUDA0 model buffer size =   601.02 MiB
+// CUDA0 KV buffer size =    88.00 MiB
+// CUDA_Host  output buffer size =     0.12 MiB
+// CUDA0 compute buffer size =   266.00 MiB
+// CUDA_Host compute buffer size =    48.02 MiB
 }  // namespace hardware

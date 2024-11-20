@@ -17,9 +17,9 @@
 #include "utils/event_processor.h"
 #include "utils/file_logger.h"
 #include "utils/file_manager_utils.h"
+#include "utils/hardware/gguf/gguf_file_estimate.h"
 #include "utils/logging_utils.h"
 #include "utils/system_info_utils.h"
-#include "utils/hardware/gguf/gguf_file_estimate.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <libgen.h>  // for dirname()
@@ -190,7 +190,16 @@ void RunServer(std::optional<int> port, bool ignore_cout) {
 }
 
 int main(int argc, char* argv[]) {
-  auto res = hardware::EstimateLLaMACppRun("/home/jan/cortexcpp-nightly/models/cortex.so/tinyllama/1b-gguf/model.gguf", 0, 0);
+  hardware::RunConfig rc = {.total_ngl = 23,
+                            .ngl = 23,
+                            .ctx_len = 2048,
+                            .n_batch = 2048,
+                            .n_ubatch = 2048,
+                            .kv_cache_type = "f16"};
+  auto res = hardware::EstimateLLaMACppRun(
+      "/home/jan/cortexcpp-nightly/models/cortex.so/tinyllama/1b-gguf/"
+      "model.gguf",
+      rc);
   return 0;
   // Stop the program if the system is not supported
   auto system_info = system_info_utils::GetSystemInfo();

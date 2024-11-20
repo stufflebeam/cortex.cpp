@@ -89,66 +89,113 @@ enum GGMLFileType {
   LLAMA_FTYPE_GUESSED = 1024,  // not specified in the model file
 };
 
+inline float GetQuantBit(GGMLType gt) {
+  switch (gt) {
+    case GGML_TYPE_F32:
+      return 32.0;
+    case GGML_TYPE_F16:
+      return 16.0;
+    case GGML_TYPE_Q4_0:
+    case GGML_TYPE_Q4_1:
+    case GGML_TYPE_Q5_0:
+    case GGML_TYPE_Q5_1:
+    case GGML_TYPE_Q8_0:
+    case GGML_TYPE_Q8_1:
+    case GGML_TYPE_Q2_K:
+    return 2.5625;
+    case GGML_TYPE_Q3_K:
+    return 3.4375;
+    case GGML_TYPE_Q4_K:
+      return 4.5;
+    case GGML_TYPE_Q5_K:
+    return 5.5;
+    case GGML_TYPE_Q6_K:
+      return 6.5625;
+    case GGML_TYPE_Q8_K:
+    case GGML_TYPE_IQ2_XXS:
+    case GGML_TYPE_IQ2_XS:
+    case GGML_TYPE_IQ3_XXS:
+    case GGML_TYPE_IQ1_S:
+    case GGML_TYPE_IQ4_NL:
+    case GGML_TYPE_IQ3_S:
+    case GGML_TYPE_IQ2_S:
+    case GGML_TYPE_IQ4_XS:
+    case GGML_TYPE_I8:
+    case GGML_TYPE_I16:
+    case GGML_TYPE_I32:
+    case GGML_TYPE_I64:
+    case GGML_TYPE_F64:
+    case GGML_TYPE_IQ1_M:
+    case GGML_TYPE_BF16:
+    case GGML_TYPE_Q4_0_4_4:
+    case GGML_TYPE_Q4_0_4_8:
+    case GGML_TYPE_Q4_0_8_8:
+    case GGML_TYPE_TQ1_0:
+    case GGML_TYPE_TQ2_0:
+
+    default:
+      return 8.0;
+  }
+}
+
 inline float GetQuantBit(GGMLFileType ft) {
-  switch (ft)
-  {
-   case LLAMA_FTYPE_ALL_F32:
-   return 32.0;
-  case LLAMA_FTYPE_MOSTLY_F16:   // except 1d tensors
-  return 16.0;
-  case LLAMA_FTYPE_MOSTLY_Q4_0:  // except 1d tensors
-  return 4.5;
-  case LLAMA_FTYPE_MOSTLY_Q4_1:  // except 1d tensors
-  return 5.0;
-  case LLAMA_FTYPE_MOSTLY_Q8_0:       // except 1d tensors
-  return 8.5;
-  case LLAMA_FTYPE_MOSTLY_Q5_0:       // except 1d tensors
-  return 5.5;
-  case LLAMA_FTYPE_MOSTLY_Q5_1:       // except 1d tensors
-  return 6.0;
-  case LLAMA_FTYPE_MOSTLY_Q2_K:      // except 1d tensors
-  return 3.35;
-  case LLAMA_FTYPE_MOSTLY_Q3_K_S:    // except 1d tensors
-  return 3.5;
-  case LLAMA_FTYPE_MOSTLY_Q3_K_M:   // except 1d tensors
-  return 3.91;
-  case LLAMA_FTYPE_MOSTLY_Q3_K_L:    // except 1d tensors
-  return 4.27;
-  case LLAMA_FTYPE_MOSTLY_Q4_K_S:    // except 1d tensors
-  return 4.58;
-  case LLAMA_FTYPE_MOSTLY_Q4_K_M:   // except 1d tensors
-  return 4.84;
-  case LLAMA_FTYPE_MOSTLY_Q5_K_S:    // except 1d tensors
-  return 5.52;
-  case LLAMA_FTYPE_MOSTLY_Q5_K_M:    // except 1d tensors
-  return 5.68;
-  case LLAMA_FTYPE_MOSTLY_Q6_K:      // except 1d tensors
-  return 6.56;
-  case LLAMA_FTYPE_MOSTLY_IQ2_XXS:   // except 1d tensors
-  return 2.06;
-  case LLAMA_FTYPE_MOSTLY_IQ2_XS:    // except 1d tensors
-  return 2.31;
-  case LLAMA_FTYPE_MOSTLY_Q2_K_S:    // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ3_XS:    // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ3_XXS:   // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ1_S:    // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ4_NL:    // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ3_S:     // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ3_M:     // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ2_S:     // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ2_M:     // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ4_XS:    // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_IQ1_M:     // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_BF16:      // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_Q4_0_4_4:  // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_Q4_0_4_8:  // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_Q4_0_8_8:  // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_TQ1_0:     // except 1d tensors
-  case LLAMA_FTYPE_MOSTLY_TQ2_0:     // except 1d ten
+  switch (ft) {
+    case LLAMA_FTYPE_ALL_F32:
+      return 32.0;
+    case LLAMA_FTYPE_MOSTLY_F16:  // except 1d tensors
+      return 16.0;
+    case LLAMA_FTYPE_MOSTLY_Q4_0:  // except 1d tensors
+      return 4.5;
+    case LLAMA_FTYPE_MOSTLY_Q4_1:  // except 1d tensors
+      return 5.0;
+    case LLAMA_FTYPE_MOSTLY_Q8_0:  // except 1d tensors
+      return 8.5;
+    case LLAMA_FTYPE_MOSTLY_Q5_0:  // except 1d tensors
+      return 5.5;
+    case LLAMA_FTYPE_MOSTLY_Q5_1:  // except 1d tensors
+      return 6.0;
+    case LLAMA_FTYPE_MOSTLY_Q2_K:  // except 1d tensors
+      return 3.35;
+    case LLAMA_FTYPE_MOSTLY_Q3_K_S:  // except 1d tensors
+      return 3.5;
+    case LLAMA_FTYPE_MOSTLY_Q3_K_M:  // except 1d tensors
+      return 3.91;
+    case LLAMA_FTYPE_MOSTLY_Q3_K_L:  // except 1d tensors
+      return 4.27;
+    case LLAMA_FTYPE_MOSTLY_Q4_K_S:  // except 1d tensors
+      return 4.58;
+    case LLAMA_FTYPE_MOSTLY_Q4_K_M:  // except 1d tensors
+      return 4.84;
+    case LLAMA_FTYPE_MOSTLY_Q5_K_S:  // except 1d tensors
+      return 5.52;
+    case LLAMA_FTYPE_MOSTLY_Q5_K_M:  // except 1d tensors
+      return 5.68;
+    case LLAMA_FTYPE_MOSTLY_Q6_K:  // except 1d tensors
+      return 6.56;
+    case LLAMA_FTYPE_MOSTLY_IQ2_XXS:  // except 1d tensors
+      return 2.06;
+    case LLAMA_FTYPE_MOSTLY_IQ2_XS:  // except 1d tensors
+      return 2.31;
+    case LLAMA_FTYPE_MOSTLY_Q2_K_S:    // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ3_XS:    // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ3_XXS:   // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ1_S:     // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ4_NL:    // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ3_S:     // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ3_M:     // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ2_S:     // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ2_M:     // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ4_XS:    // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_IQ1_M:     // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_BF16:      // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_Q4_0_4_4:  // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_Q4_0_4_8:  // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_Q4_0_8_8:  // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_TQ1_0:     // except 1d tensors
+    case LLAMA_FTYPE_MOSTLY_TQ2_0:     // except 1d ten
 
-
-  default:
-    return 8.0;
+    default:
+      return 8.0;
   }
 }
 

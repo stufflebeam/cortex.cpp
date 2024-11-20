@@ -735,8 +735,14 @@ cpp::result<StartModelResult, std::string> ModelService::StartModel(
 
     auto const& mp = json_data["model_path"].asString();
     auto ngl = json_data["ngl"].asInt();
-    auto [vram_needed_MiB, ram_needed_MiB] = hardware::EstimateLLaMACppRun(
-        mp, json_data["ngl"].asInt(), json_data["ctx_len"].asInt());
+    hardware::RunConfig rc = {.total_ngl = 33,
+                              .ngl = ngl,
+                              .ctx_len = json_data["ctx_len"].asInt(),
+                              .n_batch = 2048,
+                              .n_ubatch = 2048,
+                              .kv_cache_type = "f16"};
+    auto [vram_needed_MiB, ram_needed_MiB] =
+        hardware::EstimateLLaMACppRun(mp, rc);
 
     // for testing only
     free_vram_MiB = 6000;
@@ -748,7 +754,8 @@ cpp::result<StartModelResult, std::string> ModelService::StartModel(
       return cpp::fail(
           "Not enough VRAM - required: " + std::to_string(vram_needed_MiB) +
           " MiB, available: " + std::to_string(free_vram_MiB) +
-          " MiB - Should adjust ngl to " + std::to_string(free_vram_MiB / (vram_needed_MiB / ngl) - 1));
+          " MiB - Should adjust ngl to " +
+          std::to_string(free_vram_MiB / (vram_needed_MiB / ngl) - 1));
     }
 
     if (ram_needed_MiB > free_ram_MiB) {
