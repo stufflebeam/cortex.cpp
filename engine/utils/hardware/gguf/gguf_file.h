@@ -24,11 +24,12 @@
 #include "ggml.h"
 #include "utils/string_utils.h"
 
-#define GGUF_LOG(msg)                                                  \
-  do {                                                                 \
-    std::cout << __FILE__ << "(@" << __LINE__ << "): " << msg << '\n'; \
-  } while (false)
+// #define GGUF_LOG(msg)                                                  \
+//   do {                                                                 \
+//     std::cout << __FILE__ << "(@" << __LINE__ << "): " << msg << '\n'; \
+//   } while (false)
 
+#define GGUF_LOG(msg)  
 namespace hardware {
 #undef min
 #undef max

@@ -735,8 +735,7 @@ cpp::result<StartModelResult, std::string> ModelService::StartModel(
 
     auto const& mp = json_data["model_path"].asString();
     auto ngl = json_data["ngl"].asInt();
-    hardware::RunConfig rc = {.total_ngl = 33,
-                              .ngl = ngl,
+    hardware::RunConfig rc = {.ngl = ngl,
                               .ctx_len = json_data["ctx_len"].asInt(),
                               .n_batch = 2048,
                               .n_ubatch = 2048,

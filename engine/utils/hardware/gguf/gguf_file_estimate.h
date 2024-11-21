@@ -4,8 +4,10 @@
 #include "gguf_file.h"
 
 namespace hardware {
+inline uint64_t BytesToMiB(uint64_t b) {
+  return (double)b / 1024 / 1024;
+};
 struct RunConfig {
-  int total_ngl;
   int ngl;
   int ctx_len;
   int n_batch;
@@ -34,14 +36,16 @@ inline std::pair<uint64_t, uint64_t> EstimateLLaMACppRun(
   int32_t embedding_length = 0;
   int64_t n_vocab = 0;
   int32_t num_block = 0;
+  int32_t total_ngl = 0;
   auto file_size = std::filesystem::file_size(file_path);
   for (auto const& kv : gf.header.metadata_kv) {
     if (kv.key == "llama.embedding_length") {
       embedding_length = std::any_cast<uint32_t>(kv.value);
     } else if (kv.key == "tokenizer.ggml.tokens") {
       n_vocab = std::any_cast<GGUFMetadataKVArrayValue>(kv.value).arr.size();
-    }  else if (kv.key == "llama.block_count") {
+    } else if (kv.key == "llama.block_count") {
       num_block = std::any_cast<uint32_t>(kv.value);
+      total_ngl = num_block + 1;
     }
   }
 
@@ -70,18 +74,18 @@ inline std::pair<uint64_t, uint64_t> EstimateLLaMACppRun(
       n_vocab * embedding_length * 2 * quant_bit_out / 16;
   // RAM = token_embeddings_size + ((total_ngl-ngl) >=1 ? output_layer_size +  (total_ngl - ngl - 1 ) / (total_ngl-1) * (total_file_size - token_embeddings_size - output_layer_size) : 0  )  (bytes)
   int64_t offload = 0;
-  if (rc.total_ngl >= rc.ngl + 1) {
+  if (total_ngl >= rc.ngl + 1) {
     offload = output_layer_size +
-              (double)(rc.total_ngl - rc.ngl - 1) / (rc.total_ngl - 1) *
+              (double)(total_ngl - rc.ngl - 1) / (total_ngl - 1) *
                   (file_size - token_embeddings_size - output_layer_size);
   }
 
   int64_t ram_usage = token_embeddings_size + offload;
   int64_t vram_usage = file_size - ram_usage;
-  std::cout << "token_embeddings_size: " << token_embeddings_size << std::endl;
-  std::cout << "output_layer_size: " << output_layer_size << std::endl;
-  std::cout << "ram_usage: " << ram_usage << std::endl;
-  std::cout << "vram_usage: " << vram_usage << std::endl;
+  std::cout << "token_embeddings_size: " << BytesToMiB(token_embeddings_size) << std::endl;
+  std::cout << "output_layer_size: " << BytesToMiB(output_layer_size) << std::endl;
+  std::cout << "ram_usage: " << BytesToMiB(ram_usage) << std::endl;
+  std::cout << "vram_usage: " << BytesToMiB(vram_usage) << std::endl;
 
   // KV cache
   // kv_cache_size = ctx_len/8192 * hidden_dim/4096 * quant_bit/16 * num_block/33 * 1 (GB)
@@ -92,16 +96,16 @@ inline std::pair<uint64_t, uint64_t> EstimateLLaMACppRun(
                           hidden_dim / 4096 * kv_quant_bit / 16 * num_block /
                           33;  //(bytes)
 
-  std::cout << "kv_cache_size: " << kv_cache_size << std::endl;
+  std::cout << "kv_cache_size: " << BytesToMiB(kv_cache_size) << std::endl;
 
   // VRAM = (min(n_batch, n_ubatch))/ 512 * 266 (MiB)
   int64_t preprocessing_buffer_size =
       (double)std::min(rc.n_batch, rc.n_ubatch) / 512 * 266 * 1024 *
       1024;  //(bytes)
-  if (rc.total_ngl != rc.ngl) {
+  if (total_ngl != rc.ngl) {
     preprocessing_buffer_size += output_layer_size;
   }
-  std::cout << "preprocessing_buffer_size: " << preprocessing_buffer_size
+  std::cout << "preprocessing_buffer_size: " << BytesToMiB(preprocessing_buffer_size)
             << std::endl;
   return std::pair(0u, 0u);
 }
